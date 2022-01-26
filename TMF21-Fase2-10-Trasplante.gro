@@ -1,0 +1,245 @@
+include gro
+
+//Standard parameters
+set_theme (dark_theme);
+set("population_max", 2254);
+
+
+//Initial cells
+num_A := 26;
+num_B := 27;
+num_C := 31;
+num_D := 16;
+
+
+//CellSignals library settings
+set ("signals", 1.0);
+set ("signals_draw", 0.0);
+grid("continuous", "gro_original", 10, 10, 8);
+
+cfA := s_signal([kdiff := 0.5, kdeg := 0.05]);
+cfB := s_signal([kdiff := 0.5, kdeg := 0.05]);
+cfC := s_signal([kdiff := 0.5, kdeg := 0.05]);
+cfD := s_signal ([kdiff := 0.5, kdeg := 0.05]);
+
+
+//Genetic identities
+genes([    name := "OperonA",
+           proteins := {"genA"},
+           promoter := [function := "TRUE"],
+           prot_act_times := [times := {1.0}, variabilities := {0.0}],
+           prot_deg_times := [times := {600.0}, variabilities := {0.0}]
+     ]);
+
+genes([    name := "OperonB",
+           proteins := {"genB"},
+           promoter := [function := "TRUE"],
+           prot_act_times := [times := {1.0}, variabilities := {0.0}],
+           prot_deg_times := [times := {600.0}, variabilities := {0.0}]
+     ]);
+
+genes([    name := "OperonC",
+           proteins := {"genC"},
+           promoter := [function := "TRUE"],
+           prot_act_times := [times := {1.0}, variabilities := {0.0}],
+           prot_deg_times := [times := {600.0}, variabilities := {0.0}]
+     ]);
+
+genes([    name := "OperonD",
+           proteins := {"genD"},
+           promoter := [function := "TRUE"],
+           prot_act_times := [times := {1.0}, variabilities := {0.0}],
+           prot_deg_times := [times := {600.0}, variabilities := {0.0}]
+     ]);
+
+plasmids_genes ([ pA := {"OperonA"},
+				  pB := {"OperonB"},
+				  pC := {"OperonC"},
+				  pD := {"OperonD"}]);
+
+
+//Actions
+action({"genA"},"s_emit_cf",{tostring(cfA), "10", "exact"});
+action({"genB"},"s_emit_cf",{tostring(cfB), "30", "exact"});
+action({"genC"},"s_emit_cf",{tostring(cfC), "25", "exact"});
+action({"genD"},"s_emit_cf",{tostring(cfD), "20", "exact"});
+
+action({"genA"},"s_absorb_cf",{tostring(cfB),"10", "-1", "exact"});
+action({"genA"},"s_absorb_cf",{tostring(cfC),"10", "-1", "exact"});
+action({"genA"},"s_absorb_cf",{tostring(cfD),"10", "-1", "exact"});
+action({"genB"},"s_absorb_cf",{tostring(cfA),"50", "-1", "exact"});
+action({"genB"},"s_absorb_cf",{tostring(cfC),"30", "-1", "exact"});
+action({"genB"},"s_absorb_cf",{tostring(cfD),"20", "-1", "exact"});
+action({"genC"},"s_absorb_cf",{tostring(cfA),"30", "-1", "exact"});
+action({"genC"},"s_absorb_cf",{tostring(cfB),"50", "-1", "exact"});
+action({"genC"},"s_absorb_cf",{tostring(cfC),"50", "-1", "exact"});
+action({"genD"},"s_absorb_cf",{tostring(cfA),"40", "-1", "exact"});
+action({"genD"},"s_absorb_cf",{tostring(cfB),"35", "-1", "exact"});
+action({"genD"},"s_absorb_cf",{tostring(cfC),"25", "-1", "exact"});
+
+
+//Growth rate
+action({"genA"}, "set_growth_rate", {"0.019"});
+action({"genB"}, "set_growth_rate", {"0.024"});
+action({"genC"}, "set_growth_rate", {"0.035"});
+action({"genD"}, "set_growth_rate", {"0.022"});
+
+
+//Programs
+
+//Red poblation (A, Clostridium difficile)
+fp_pobA := fopen ( "C:/Users/Olga/Desktop/TFG/GRO/Clostridium/Paciente TMF21/Celulas-aglomeradas/Fase2-Trasplante/10%-Trasplante/poblationA.csv", "w" );
+fprint(fp_pobA, "Time\tNum_cells\tId\tVolume\tRFP\n");
+
+program genA() := {
+	
+	//Colour
+	rfp := 0;
+	rate (1) : {rfp:=rfp+1}					//rfp production rate
+	
+	//Cell count
+	daughter : { num_A := num_A + 1 };
+	
+};
+
+//Collecting data
+program reportA(period) := {
+
+	r := [t := 0, s := 0];
+	needs rfp;
+	
+	true : {r.t := r.t +dt, r.s := r.s + dt}
+	
+	r.s >= period : {
+	fprint ( fp_pobA, r.t, "\t", "1", "\t", id, "\t", volume, "\t", rfp, "\n" );
+	r.s := 0;
+	}
+
+};
+
+
+//Yellow poblation (B)
+fp_pobB := fopen ( "C:/Users/Olga/Desktop/TFG/GRO/Clostridium/Paciente TMF21/Celulas-aglomeradas/Fase2-Trasplante/10%-Trasplante/poblationB.csv", "w" );
+fprint(fp_pobB, "Time\tNum_cells\tId\tVolume\tYFP\n");
+
+program genB() := {					//Antibiotic program
+	
+	//Colour
+	yfp := 0;
+	rate (1) : {yfp:=yfp+1}					//yfp production rate
+	
+	//Cell count
+	daughter : { num_B := num_B + 1 };
+		
+};
+
+//Collecting data
+program reportB(period) := {
+
+	r := [t := 0, s := 0];
+	needs yfp;
+	
+	true : {r.t := r.t +dt, r.s := r.s + dt}
+	
+	r.s >= period : {
+	fprint ( fp_pobB, r.t, "\t", "1", "\t", id, "\t", volume, "\t", yfp, "\n" );
+	r.s := 0;
+	}
+
+};
+
+
+//Green poblation (C)
+fp_pobC := fopen ( "C:/Users/Olga/Desktop/TFG/GRO/Clostridium/Paciente TMF21/Celulas-aglomeradas/Fase2-Trasplante/10%-Trasplante/poblationC.csv", "w" );
+fprint(fp_pobC, "Time\tNum_cells\tId\tVolume\tGFP\n");
+
+program genC() := {
+	
+	//Colour
+	gfp := 0;
+	rate (1) : {gfp:=gfp+1}					//gfp production rate
+	
+	//Cell count
+	daughter : { num_C := num_C + 1 };		
+		
+};
+
+//Collecting data
+program reportC(period) := {
+
+	r := [t := 0, s := 0];
+	needs gfp;
+	
+	true : {r.t := r.t +dt, r.s := r.s + dt}
+	
+	r.s >= period : {
+	fprint ( fp_pobC, r.t, "\t", "1", "\t", id, "\t", volume, "\t", gfp, "\n" );
+	r.s := 0;
+	}
+
+};
+
+
+//Cyan poblation (D)
+fp_pobD := fopen ( "C:/Users/Olga/Desktop/TFG/GRO/Clostridium/Paciente TMF21/Celulas-aglomeradas/Fase2-Trasplante/10%-Trasplante/poblationD.csv", "w" );
+fprint(fp_pobD, "Time\tNum_cells\tId\tVolume\tCFP\n");
+
+program genD() := {
+	
+	//Colour
+	cfp := 0;
+	rate (1) : {cfp:=cfp+1}					//cfp production rate
+	
+	//Cell count
+	daughter : { num_D := num_D + 1 };
+	
+};
+
+//Collecting data
+program reportD(period) := {
+
+	r := [t := 0, s := 0];
+	needs cfp;
+	
+	true : {r.t := r.t +dt, r.s := r.s + dt}
+	
+	r.s >= period : {
+	fprint ( fp_pobD, r.t, "\t", "1", "\t", id, "\t", volume, "\t", cfp, "\n" );
+	r.s := 0;
+	}
+
+};
+
+
+//Main program
+program main() := {
+
+	t := 0;
+	s := 0;									//total time tracker
+	n := 0;									//Snapshot number
+	x := 0;									//Clostiridum cell count
+	y := 0;									//Total cell count
+	
+	
+	t > 1 : {								// Snapshots every 1 program minutes
+		snapshot ("snapshot" <> if n<10 then "0" else "" end <> tostring(n) <> ".tif"),
+		n := n+1,
+		t := 0
+	}
+	s >= 1 : {
+		y := num_A + num_B + num_C + num_D;	
+		x := num_A*100/y;					//Clostridium ratio
+		s := 0
+	};
+
+	true : {t := t+dt,
+			s := s+dt
+	}
+};
+
+
+// Cells
+c_ecolis(26, 50, 0, 0, {"pA"}, program genA() + reportA(1) sharing rfp);  
+c_ecolis(27, -50, 0, 0, {"pB"}, program genB() + reportB(1) sharing yfp);
+c_ecolis(31, 0, 50, 0, {"pC"}, program genC() + reportC(1) sharing gfp);
+c_ecolis(16, 0, -50, 0, {"pD"}, program genD() + reportD(1) sharing cfp);
